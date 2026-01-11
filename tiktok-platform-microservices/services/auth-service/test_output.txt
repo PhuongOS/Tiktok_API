@@ -1,0 +1,9 @@
+/Users/hoaiphuong/Downloads/QT/TikTokLive-6.2.0.note/tiktok-platform-microservices/services/auth-service/venv/lib/python3.10/site-packages/_pytest/config/__init__.py:331: PluggyTeardownRaisedWarning: A plugin raised an exception during an old-style hookwrapper teardown.
+Plugin: helpconfig, Hook: pytest_cmdline_parse
+ConftestImportFailure: ModuleNotFoundError: No module named 'httpx' (from /Users/hoaiphuong/Downloads/QT/TikTokLive-6.2.0.note/tiktok-platform-microservices/services/auth-service/tests/conftest.py)
+For more information see https://pluggy.readthedocs.io/en/stable/api_reference.html#pluggy.PluggyTeardownRaisedWarning
+  config = pluginmanager.hook.pytest_cmdline_parse(
+ImportError while loading conftest '/Users/hoaiphuong/Downloads/QT/TikTokLive-6.2.0.note/tiktok-platform-microservices/services/auth-service/tests/conftest.py'.
+tests/conftest.py:6: in <module>
+    from httpx import AsyncClient
+E   ModuleNotFoundError: No module named 'httpx'

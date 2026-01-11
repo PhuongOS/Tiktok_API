@@ -1,0 +1,148 @@
+version: '3.8'
+
+services:
+  # ============================================
+  # Databases
+  # ============================================
+
+  auth-db:
+    image: postgres:14-alpine
+    container_name: auth_db
+    environment:
+      POSTGRES_DB: auth_db
+      POSTGRES_USER: auth_user
+      POSTGRES_PASSWORD: auth_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - auth_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U auth_user -d auth_db" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - microservices
+
+  tiktok-db:
+    image: postgres:14-alpine
+    container_name: tiktok_db
+    environment:
+      POSTGRES_DB: tiktok_db
+      POSTGRES_USER: tiktok_user
+      POSTGRES_PASSWORD: tiktok_password
+    ports:
+      - "5433:5432"
+    volumes:
+      - tiktok_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U tiktok_user -d tiktok_db" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - microservices
+
+  rules-db:
+    image: postgres:14-alpine
+    container_name: rules_db
+    environment:
+      POSTGRES_DB: rules_db
+      POSTGRES_USER: rules_user
+      POSTGRES_PASSWORD: rules_password
+    ports:
+      - "5434:5432"
+    volumes:
+      - rules_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U rules_user -d rules_db" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - microservices
+
+  device-db:
+    image: postgres:14-alpine
+    container_name: device_db
+    environment:
+      POSTGRES_DB: device_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5435:5432"
+    volumes:
+      - device_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d device_db" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - microservices
+
+  # ============================================
+  # Event Bus & Cache
+  # ============================================
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis_streams
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - microservices
+  # ============================================
+  # Microservices (commented out - run locally with venv)
+  # ============================================
+
+  # Uncomment when ready to containerize services
+
+  # api-gateway:
+  #   build: ./services/api-gateway
+  #   container_name: api_gateway
+  #   ports:
+  #     - "8000:8000"
+  #   environment:
+  #     - REDIS_URL=redis://redis:6379
+  #   depends_on:
+  #     redis:
+  #       condition: service_healthy
+  #   networks:
+  #     - microservices
+
+  # auth-service:
+  #   build: ./services/auth-service
+  #   container_name: auth_service
+  #   ports:
+  #     - "8001:8001"
+  #   environment:
+  #     - DATABASE_URL=postgresql+asyncpg://auth_user:auth_password@auth-db:5432/auth_db
+  #     - REDIS_URL=redis://redis:6379
+  #   depends_on:
+  #     auth-db:
+  #       condition: service_healthy
+  #     redis:
+  #       condition: service_healthy
+  #   networks:
+  #     - microservices
+
+volumes:
+  auth_db_data:
+  tiktok_db_data:
+  rules_db_data:
+  device_db_data:
+  redis_data:
+
+
+networks:
+  microservices:
+    driver: bridge
