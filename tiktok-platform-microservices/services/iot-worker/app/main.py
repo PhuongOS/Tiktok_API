@@ -3,10 +3,11 @@ Main entry point for IoT Worker Service
 """
 import logging
 import sys
-import time
+import asyncio
 from app.config import config
 from app.thingsboard_client import ThingsBoardClient
-from app.mqtt_client import ThingsBoardMQTTClient
+from app.redis_consumer import RedisStreamConsumer
+from app.event_processor import EventProcessor
 from app.processors.gift_processor import GiftProcessor
 
 # Setup logging
@@ -22,15 +23,18 @@ class IoTWorkerService:
     
     def __init__(self):
         self.tb_client = None
-        self.mqtt_client = None
-        self.gift_processor = GiftProcessor()
+        self.redis_consumer = None
+        self.event_processor = None
         self.running = False
     
-    def start(self):
+    async def start(self):
         """Start the service"""
+        logger.info("=" * 60)
         logger.info("Starting IoT Worker Service...")
+        logger.info("=" * 60)
         logger.info(f"ThingsBoard URL: {config.THINGSBOARD_URL}")
         logger.info(f"MQTT Host: {config.THINGSBOARD_MQTT_HOST}:{config.THINGSBOARD_MQTT_PORT}")
+        logger.info(f"Redis: {config.REDIS_HOST}:{config.REDIS_PORT}")
         
         # Initialize ThingsBoard client
         self.tb_client = ThingsBoardClient(
@@ -44,43 +48,62 @@ class IoTWorkerService:
             logger.error("Failed to login to ThingsBoard")
             sys.exit(1)
         
-        # List existing devices
-        devices = self.tb_client.list_devices()
-        logger.info(f"Found {len(devices)} existing devices")
-        for device in devices:
-            logger.info(f"  - {device.get('name')} ({device.get('type')})")
+        # Initialize Redis consumer
+        self.redis_consumer = RedisStreamConsumer(
+            redis_host=config.REDIS_HOST,
+            redis_port=config.REDIS_PORT,
+            redis_db=config.REDIS_DB,
+            consumer_group="iot-workers",
+            consumer_name="worker-1"
+        )
         
-        # TODO: Initialize MQTT connections for each device
-        # TODO: Start Redis Stream consumer
-        # TODO: Start processing loop
+        if not self.redis_consumer.connect():
+            logger.error("Failed to connect to Redis")
+            sys.exit(1)
+        
+        # Initialize processors
+        gift_processor = GiftProcessor()
+        
+        # Initialize event processor
+        self.event_processor = EventProcessor(
+            tb_client=self.tb_client,
+            redis_consumer=self.redis_consumer,
+            gift_processor=gift_processor
+        )
         
         self.running = True
-        logger.info("IoT Worker Service started successfully")
+        logger.info("=" * 60)
+        logger.info("IoT Worker Service started successfully!")
+        logger.info("=" * 60)
         
-        # Keep running
+        # Start processing events
+        # Stream keys to consume from
+        stream_keys = [
+            "iot:commands:workspace-123",  # TODO: Make this dynamic based on workspaces
+        ]
+        
         try:
-            while self.running:
-                time.sleep(1)
+            await self.event_processor.start(stream_keys)
         except KeyboardInterrupt:
             logger.info("Received shutdown signal")
-            self.stop()
+            await self.stop()
     
-    def stop(self):
+    async def stop(self):
         """Stop the service"""
         logger.info("Stopping IoT Worker Service...")
         self.running = False
         
-        if self.mqtt_client:
-            self.mqtt_client.disconnect()
+        if self.event_processor:
+            self.event_processor.stop()
         
         logger.info("IoT Worker Service stopped")
 
 
-def main():
+async def main():
     """Main function"""
     service = IoTWorkerService()
-    service.start()
+    await service.start()
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

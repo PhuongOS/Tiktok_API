@@ -1,0 +1,20 @@
+[
+  {
+    "name": "motor_01",
+    "id": "4ed0a420-ef94-11f0-899c-c57a1ade101a",
+    "token": "9NrlCt3EGAqQmiMPwUoB",
+    "type": "Motor"
+  },
+  {
+    "name": "led_strip_01",
+    "id": "4ee00d70-ef94-11f0-899c-c57a1ade101a",
+    "token": "LaOnPlj54KyECNEAROPM",
+    "type": "LED"
+  },
+  {
+    "name": "servo_01",
+    "id": "4eeba630-ef94-11f0-899c-c57a1ade101a",
+    "token": "zsyvOG1VyyKi4crbvlw2",
+    "type": "Servo"
+  }
+]
